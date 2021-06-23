@@ -1,6 +1,6 @@
 {
     "train_net": {
-        "script": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/Source/allen-inst-cell-types/train_net.py",
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/train_net.py",
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
             "n_classes": 10,
@@ -12,71 +12,64 @@
             "momentum": 0.9
         },
         "job_settings": {
-            "queue": "braintv",
+            "partition": "braintv",
             "mem": "32g",
-            "walltime": "8:00:00",
-            "ppn": 4,
+            "time": "8:00:00",
+            "ntasks": 4,
             "nodes": 1,
             "gpus": 1,
-            "email": "briar.doty@alleninstitute.org",
-            "email_options": "a"
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
         }
     },
     "save_net_activations": {
-        "script": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/Source/allen-inst-cell-types/save_net_activations.py",
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/save_net_activations.py",
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
             "batch_size": 128
         },
         "job_settings": {
-            "queue": "braintv",
+            "partition": "braintv",
             "mem": "32g",
-            "walltime": "1:00:00",
-            "ppn": 4,
+            "time": "1:00:00",
+            "ntasks": 4,
             "nodes": 1,
             "gpus": 1,
-            "email": "briar.doty@alleninstitute.org",
-            "email_options": "a"
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
         }
     },
     "gen_nets": {
-        "script": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/Source/allen-inst-cell-types/gen_nets.py",
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/gen_nets.py",
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
             "n_classes": 10,
             "n_samples": 10
         },
         "job_settings": {
-            "queue": "braintv",
+            "partition": "braintv",
             "mem": "8g",
-            "walltime": "1:00:00",
-            "ppn": 2,
+            "time": "1:00:00",
+            "ntasks": 2,
             "nodes": 1,
             "gpus": 1,
-            "email": "briar.doty@alleninstitute.org",
-            "email_options": "a"
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
         }
     },
     "refresh_dataframes": {
-        "script": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/Source/allen-inst-cell-types/refresh_dataframes.py",
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/refresh_dataframes.py",
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/"
         },
         "job_settings": {
-            "queue": "braintv",
+            "partition": "braintv",
             "mem": "8g",
-            "walltime": "8:00:00",
-            "ppn": 2,
+            "time": "8:00:00",
+            "ntasks": 2,
             "nodes": 1,
-            "email": "briar.doty@alleninstitute.org",
-            "email_options": "a"
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
         }
     }
 }
-
-
-
-
-
-
-
