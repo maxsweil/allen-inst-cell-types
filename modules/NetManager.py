@@ -28,25 +28,27 @@ except:
     from StickNet import StickNet
 
 try:
+    from .StubNet import StubNet
+except:
+    from StubNet import StubNet
+
+try:
     from .util import *
 except:
     from util import *
 
-import matplotlib
-large_font_size = 16
-small_font_size = 14
-matplotlib.rc("xtick", labelsize=16) 
-matplotlib.rc("ytick", labelsize=16) 
-
 from enum import Enum
+
+
 class TargetLayers(Enum):
     NOTHING = 0
     FIRSTHALF = 1
     LASTHALF = 2
     ALL = None
 
+
 def replace_act_layers(model, n_repeat, act_fns, act_fn_params, spatial,
-    conv_target, fc_target, default_fn):
+                       conv_target, fc_target, default_fn):
     """
     Iterative helper function to replace relu layers with
     instances of MixedActivationLayer with the given params
@@ -60,9 +62,9 @@ def replace_act_layers(model, n_repeat, act_fns, act_fn_params, spatial,
         n_tgts = n_tgts / 2
     elif conv_target == TargetLayers.NOTHING:
         n_tgts = 0
-    itr = (reversed(range(len(conv_layers))) 
-        if conv_target == TargetLayers.LASTHALF 
-        else range(len(conv_layers)))
+    itr = (reversed(range(len(conv_layers)))
+           if conv_target == TargetLayers.LASTHALF
+           else range(len(conv_layers)))
     for i in itr:
 
         name, module = conv_layers[i]
@@ -70,19 +72,20 @@ def replace_act_layers(model, n_repeat, act_fns, act_fn_params, spatial,
         if type(module) != nn.ReLU:
             continue
 
-        _, prev = conv_layers[i-1]
+        _, prev = conv_layers[i - 1]
         n_features = prev.out_channels
 
         if n_tgts <= 0:
             # replace with default component layer
-            model.features._modules[name] = MixedActivationLayer(n_features, [1], 
-                [act_fns[default_fn]], [act_fn_params[default_fn]], spatial) 
+            model.features._modules[name] = MixedActivationLayer(n_features, [1],
+                                                                 [act_fns[default_fn]], [act_fn_params[default_fn]],
+                                                                 spatial)
 
         else:
             # replace with mixed layer
-            model.features._modules[name] = MixedActivationLayer(n_features, n_repeat, 
-                act_fns, act_fn_params, spatial) 
-            
+            model.features._modules[name] = MixedActivationLayer(n_features, n_repeat,
+                                                                 act_fns, act_fn_params, spatial)
+
             n_tgts -= 1
 
     # then do the same thing for fc layers
@@ -101,28 +104,29 @@ def replace_act_layers(model, n_repeat, act_fns, act_fn_params, spatial,
         if type(module) != nn.ReLU:
             continue
 
-        _, prev = fc_layers[i-1]
+        _, prev = fc_layers[i - 1]
         n_features = prev.out_features
-        
+
         if n_tgts <= 0:
             # replace with default component layer
-            model.classifier._modules[name] = MixedActivationLayer(n_features, [1], 
-                [act_fns[default_fn]], [act_fn_params[default_fn]], spatial) 
+            model.classifier._modules[name] = MixedActivationLayer(n_features, [1],
+                                                                   [act_fns[default_fn]], [act_fn_params[default_fn]],
+                                                                   spatial)
 
         else:
             # replace with mixed layer
-            model.classifier._modules[name] = MixedActivationLayer(n_features, n_repeat, 
-                act_fns, act_fn_params, spatial) 
-            
+            model.classifier._modules[name] = MixedActivationLayer(n_features, n_repeat,
+                                                                   act_fns, act_fn_params, spatial)
+
             n_tgts -= 1
 
     return model
 
 
 class NetManager():
-    
-    def __init__(self, dataset, net_name, group, case, data_dir, 
-        train_scheme, pretrained=False, seed=None):
+
+    def __init__(self, dataset, net_name, group, case, data_dir,
+                 train_scheme, pretrained=False, seed=None):
 
         # SEED!
         self.seed_everything(seed)
@@ -146,9 +150,9 @@ class NetManager():
         else:
             self.device = torch.device("cpu")
             print("GPU speedup NOT enabled.")
-        
+
     def seed_everything(self, seed):
-        
+
         if seed is None:
             seed = os.urandom(4)
 
@@ -161,22 +165,25 @@ class NetManager():
     def init_net(self, sample):
 
         self.sample = sample
-        self.net_dir = get_net_dir(self.data_dir, self.dataset, self.net_name, 
-            self.train_scheme, self.group, self.case, self.sample)
+        self.net_dir = get_net_dir(self.data_dir, self.dataset, self.net_name,
+                                   self.train_scheme, self.group, self.case, self.sample)
 
         if self.pretrained:
             print("Initializing pretrained net!")
 
         if self.net_name == "vgg11":
             self.net = models.vgg11(pretrained=self.pretrained)
-        
+
         elif self.net_name == "sticknet8":
             self.net = StickNet(8)
+
+        elif self.netname == "stubnet8":
+            self.net = StubNet(8)
 
         else:
             print(f"Unrecognized network name {self.net_name}, exiting job.")
             sys.exit(-1)
-            
+
         # update net's output layer to match n_classes
         n_classes = 100 if self.dataset == "cifar100" else 10
         n_features = self.net.classifier[-1].in_features
@@ -185,26 +192,26 @@ class NetManager():
         # update net's input layer to match n_channels in dataset
         if self.dataset == "fashionmnist":
             conv1 = self.net.features[0]
-            self.net.features[0] = nn.Conv2d(1, conv1.out_channels, 
-                kernel_size=conv1.kernel_size, 
-                padding=conv1.padding)
+            self.net.features[0] = nn.Conv2d(1, conv1.out_channels,
+                                             kernel_size=conv1.kernel_size,
+                                             padding=conv1.padding)
         self.net = self.net.to(self.device)
-    
+
     def get_net_filepath(self, epoch=None):
         if epoch is not None:
             net_tag = get_net_tag(self.net_name, self.case, self.sample, epoch)
         else:
             net_tag = get_net_tag(self.net_name, self.case, self.sample, self.epoch)
-        
+
         filename = f"{net_tag}.pt"
         net_filepath = os.path.join(self.net_dir, filename)
 
         return net_filepath
 
     def save_net_snapshot(self, epoch=0, val_acc=None):
-        
+
         net_filepath = self.get_net_filepath(epoch)
-        
+
         snapshot_state = {
             "dataset": self.dataset,
             "net_name": self.net_name,
@@ -232,7 +239,7 @@ class NetManager():
         filename = f"{name}.npy" if save_np else f"{name}.pkl"
         filepath = os.path.join(self.net_dir, filename)
         print(f"Saving {filename}")
-        
+
         data = {
             f"{name}": obj_to_save,
             "net_name": self.net_name,
@@ -252,11 +259,11 @@ class NetManager():
         else:
             with open(filepath, "wb") as pkl_file:
                 pickle.dump(data, pkl_file)
-        
+
     def load_net_snapshot_from_path(self, net_filepath):
         # load snapshot
         snapshot_state = torch.load(net_filepath, map_location=self.device)
-        
+
         # extract state
         state_dict = snapshot_state.get("state_dict")
         self.net_name = snapshot_state.get("net_name")
@@ -264,17 +271,17 @@ class NetManager():
         self.case = snapshot_state.get("case")
         self.group = snapshot_state.get("group")
         self.sample = snapshot_state.get("sample")
-        
+
         self.dataset = snapshot_state.get("dataset") if snapshot_state.get("dataset") is not None else "imagenette2"
-        self.modified_layers = snapshot_state.get("modified_layers")        
+        self.modified_layers = snapshot_state.get("modified_layers")
         self.epoch = snapshot_state.get("epoch")
         self.initial_lr = snapshot_state.get("initial_lr")
-        
+
         # load net state
         self.init_net(self.sample)
         self.net.load_state_dict(state_dict)
         self.net.eval()
-        
+
         # make any modifications
         if self.modified_layers is not None:
             n_repeat = self.modified_layers["n_repeat"]
@@ -284,54 +291,55 @@ class NetManager():
             conv_layers = self.modified_layers.get("conv_layers")
             fc_layers = self.modified_layers.get("fc_layers")
             default_fn = self.modified_layers.get("default_fn")
-            self.replace_act_layers(n_repeat, act_fns, act_fn_params, spatial, 
-                conv_layers, fc_layers, default_fn)
-        
+            self.replace_act_layers(n_repeat, act_fns, act_fn_params, spatial,
+                                    conv_layers, fc_layers, default_fn)
+
         # print net summary
         print(self.net)
 
         return self.net
-    
+
     def load_snapshot_metadata(self, net_filepath, include_state=False):
         # load snapshot
         snapshot_state = torch.load(net_filepath, map_location=self.device)
-        
+
         if include_state:
             return snapshot_state
-        
+
         return {
             "dataset": snapshot_state.get("dataset"),
             "net_name": snapshot_state.get("net_name"),
             "epoch": snapshot_state.get("epoch"),
             "train_scheme": snapshot_state.get("train_scheme"),
-            "group": snapshot_state.get("group"), 
+            "group": snapshot_state.get("group"),
             "case": snapshot_state.get("case"),
             "sample": snapshot_state.get("sample"),
             "val_acc": snapshot_state.get("val_acc"),
             "modified_layers": snapshot_state.get("modified_layers"),
             "initial_lr": snapshot_state.get("initial_lr")
         }
-    
+
     def load_dataset(self, batch_size=128):
 
-        (train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader) = load_dataset(self.data_dir, 
-            self.dataset, batch_size)
+        (train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader) = load_dataset(self.data_dir,
+                                                                                                         self.dataset,
+                                                                                                         batch_size)
 
         (self.train_set, self.val_set, self.test_set,
-            self.train_loader, 
-            self.val_loader, 
-            self.test_loader) = (train_dataset, test_dataset, test_dataset, train_loader, test_loader, test_loader)
+         self.train_loader,
+         self.val_loader,
+         self.test_loader) = (train_dataset, test_dataset, test_dataset, train_loader, test_loader, test_loader)
 
     def load_activation_dataset(self, batch_size=128):
 
         (self.train_set, self.val_set, self.test_set,
-            self.train_loader, 
-            self.val_loader, 
-            self.test_loader) = load_cifar10_activation(self.data_dir, 
-            batch_size)
-        
-    def replace_act_layers(self, n_repeat, act_fns, act_fn_params, spatial, 
-        conv_layers, fc_layers, default_fn):
+         self.train_loader,
+         self.val_loader,
+         self.test_loader) = load_cifar10_activation(self.data_dir,
+                                                     batch_size)
+
+    def replace_act_layers(self, n_repeat, act_fns, act_fn_params, spatial,
+                           conv_layers, fc_layers, default_fn):
         """
         Replace nn.ReLU layers with MixedActivationLayers
         """
@@ -340,20 +348,21 @@ class NetManager():
         self.modified_layers = {
             "n_repeat": n_repeat,
             "act_fns": act_fns,
-            "act_fn_params": act_fn_params, 
+            "act_fn_params": act_fn_params,
             "spatial": spatial,
             "conv_layers": conv_layers,
             "fc_layers": fc_layers,
             "default_fn": default_fn
-        }   
+        }
 
         # call helper function
-        self.net = replace_act_layers(self.net, n_repeat, act_fns, 
-            act_fn_params, spatial, conv_layers, fc_layers, default_fn)
-        
+        self.net = replace_act_layers(self.net, n_repeat, act_fns,
+                                      act_fn_params, spatial, conv_layers, fc_layers, default_fn)
+
     def register_hook(self, module, key):
 
         self.activation_dict[key] = list()
+
         def output_hook(module, inp, output):
             output = output.detach().cpu().numpy()
             dims = ("img", "unit", "x", "y") if len(output.shape) == 4 else ("img", "unit")
@@ -369,17 +378,16 @@ class NetManager():
         Wire up output hooks for all layers
         """
 
-        # dict contains activations 
+        # dict contains activations
         self.activation_dict = dict()
 
         # conv activation layers
         conv_layers = list(self.net.features._modules.items())
         for i in range(len(conv_layers)):
-
             name, module = conv_layers[i]
             # if not type(module) in (nn.ReLU, MixedActivationLayer):
             #     continue
-            
+
             key = f"{str(module)}_{i}"
             self.register_hook(module, key)
 
@@ -390,14 +398,14 @@ class NetManager():
             name, module = fc_layers[j]
             if not type(module) in (nn.ReLU, MixedActivationLayer):
                 continue
-            
-            key = f"{str(module)}_{i+j}"
+
+            key = f"{str(module)}_{i + j}"
             self.register_hook(module, key)
 
     def evaluate_net(self, criterion, phase="val"):
         # set to validate mode
         self.net.eval()
-        
+
         running_loss = 0.0
         running_corrects = 0
 
@@ -423,9 +431,9 @@ class NetManager():
 
         print('{} Loss: {:.6f} Acc: {:.6f}'.format(
             phase, epoch_loss, epoch_acc))
-        
+
         return (epoch_acc.item(), epoch_loss)
-    
+
     def train_net(self, criterion, optimizer, scheduler, train_frac):
         """
         Run a single training epoch
@@ -440,7 +448,7 @@ class NetManager():
         # set to training mode
         phase = "train"
         self.net.train()
-        
+
         running_loss = 0.0
         running_corrects = 0
 
@@ -451,7 +459,7 @@ class NetManager():
         train_limit = len(self.train_loader) * train_frac
 
         for inputs, labels in self.train_loader:
-            
+
             # break if past training limit
             if i >= train_limit:
                 break
@@ -465,7 +473,7 @@ class NetManager():
 
             # run net forward, tracking history
             with torch.set_grad_enabled(True), torch.autograd.set_detect_anomaly(True):
-                
+
                 self.labels = labels
                 outputs = self.net(inputs)
 
@@ -496,7 +504,7 @@ class NetManager():
             phase, epoch_loss, epoch_acc))
 
         return (epoch_acc.item(), epoch_loss)
-    
+
     def update_resume_state(self, scheduler, end_epoch):
 
         # load perf_stats from before resume
@@ -550,7 +558,7 @@ class NetManager():
 
                 # run net forward, tracking history
                 with torch.set_grad_enabled(True), torch.autograd.set_detect_anomaly(True):
-                    
+
                     outputs = self.net(inputs)
                     loss = criterion(outputs, labels)
 
@@ -569,46 +577,29 @@ class NetManager():
                 else:
                     loss = smoothing * loss + (1 - smoothing) * loss_arr[-1]
                     loss_arr.append(float(loss))
-                
+
                 iter += 1
 
         # plot loss vs lr
-        fig, ax = plt.subplots(figsize=(5,5))
-        clrs = sns.color_palette("Set2", 3)
+        fig, ax = plt.subplots(figsize=(5, 5))
+        clrs = sns.color_palette("Set2", 2)
         ax.plot(lr_arr, loss_arr, c=clrs[1], linewidth=2)
         ax.set_xscale("log")
         ax.set_xlabel("Learning rate", fontsize=16)
         ax.set_ylabel("Loss", fontsize=16)
+        plt.tight_layout()
+        plot_filepath = os.path.join(self.net_dir, "lr_find.svg")
+        plt.savefig(plot_filepath)
 
         # find best LR
         i_best_loss = np.argmin(loss_arr)
         best_lr = lr_arr[i_best_loss]
-        chosen_lr = best_lr / 2.0
-
-        def closest(lst, K):    
-            return lst[min(range(len(lst)), key = lambda i: abs(lst[i]-K))]
-
-        closest_lr = closest(lr_arr, chosen_lr)
-        i_closest = lr_arr.index(closest_lr)
-
-        # mark them on plot
-        ms = 10
-        alpha = 0.8
-        peak_label = "Peak LR: {:.3f}".format(best_lr)
-        pick_label = "Take LR: {:.3f}".format(chosen_lr)
-        ax.plot(best_lr, loss_arr[i_best_loss], c=clrs[0], marker="o", label=peak_label, markersize=ms, alpha=alpha)
-        ax.plot(closest_lr, loss_arr[i_closest], c=clrs[2], marker="o", label=pick_label, markersize=ms, alpha=alpha)
-        ax.legend(fontsize=small_font_size, loc="lower left")
 
         # gc?
         torch.cuda.empty_cache()
         gc.collect()
 
-        plt.tight_layout()
-        plot_filepath = os.path.join(self.net_dir, "lr_find.svg")
-        plt.savefig(plot_filepath)
-
-        return chosen_lr
+        return best_lr / 2.0
 
     def get_convergence_metric(self, epoch, metric="deriv"):
 
@@ -617,9 +608,9 @@ class NetManager():
 
         if metric == "deriv":
             points = 7
-            rhs = [s[0] for s in self.perf_stats[max(epoch-points,0):epoch]]
+            rhs = [s[0] for s in self.perf_stats[max(epoch - points, 0):epoch]]
             rhs = np.mean(rhs)
-            lhs = [s[0] for s in self.perf_stats[w_start:w_start+points] if s is not None]
+            lhs = [s[0] for s in self.perf_stats[w_start:w_start + points] if s is not None]
             lhs = np.mean(lhs)
             w_deriv = (rhs - lhs) / (epoch - w_start)
             w_deriv = 0 if w_deriv != w_deriv else w_deriv
@@ -630,11 +621,11 @@ class NetManager():
             w_vals = np.array([s[0] for s in self.perf_stats[w_start:epoch]])
             diff = self.perf_stats[epoch][0] - w_vals
             wdiff = np.mean(diff)
-            
+
             return wdiff
 
-    def run_training_loop(self, criterion, optimizer, scheduler, train_frac=1., 
-        end_epoch=10, snap_freq=1000):
+    def run_training_loop(self, criterion, optimizer, scheduler, train_frac=1.,
+                          end_epoch=10, snap_freq=1000):
         """
         Run end_epoch of training and validation
         """
@@ -642,7 +633,7 @@ class NetManager():
         since = time.time()
         best_acc = -1
         best_epoch = -1
-    
+
         if self.epoch == 0:
             # validate initial state for science
             (val_acc, val_loss) = self.evaluate_net(criterion)
@@ -659,17 +650,17 @@ class NetManager():
         for epoch in epochs:
             print('Epoch {}/{}'.format(epoch, end_epoch))
             print('-' * 10)
-    
+
             # training phase
             (train_acc, train_loss) = self.train_net(criterion, optimizer, scheduler, train_frac)
-            
+
             # validation phase
             (val_acc, val_loss) = self.evaluate_net(criterion)
-    
+
             # save a snapshot of net state
             if epoch % snap_freq == 0:
                 self.save_net_snapshot(epoch, val_acc)
-            
+
             # track stats
             self.perf_stats[epoch] = [val_acc, val_loss, train_acc, train_loss]
 
@@ -692,7 +683,7 @@ class NetManager():
             #     break
 
             print()
-    
+
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
@@ -704,18 +695,18 @@ class NetManager():
         print('Best val acc: {:.8f} on epoch {}'.format(best_acc, best_epoch))
         # save perf stats
         self.save_arr("perf_stats", np.array(self.perf_stats))
-        
+
         # save final snapshot
         self.save_net_snapshot(epoch, val_acc)
 
 
-if __name__=="__main__":
-    data_dir = "/home/briardoty/Source/allen-inst-cell-types/data_mountpoint/"
-    dataset = "cifar10"
+if __name__ == "__main__":
+    data_dir = "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data"
+    dataset = "cifar100"
     net = "sticknet8"
-    scheme = "adam-lr-avg"
-    group = "within-swish"
-    case = "swish0.1-1"
+    scheme = "adam"
+    group = "control"
+    case = "relu"
     sample = 8
     epoch = 0
 
@@ -723,7 +714,7 @@ if __name__=="__main__":
     mgr = NetManager(dataset, net, group, case, data_dir, scheme, True)
     mgr.init_net(0)
     # mgr.load_net_snapshot_from_path(f"{data_dir}nets/{dataset}/{net}/{scheme}/{group}/{case}/sample-{sample}/{net}_case-{case}_sample-{sample}_epoch-{epoch}.pt")
-    
+
     # reliable seed
     seed = get_seed_for_sample(data_dir, mgr.sample)
     mgr.seed_everything(seed)
@@ -734,11 +725,11 @@ if __name__=="__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(mgr.net.parameters(), lr=1e-7)
 
-    lr_low, lr_high = 1e-7, 0.1
-    x = mgr.find_initial_lr(criterion, optimizer, lr_low, lr_high)
+    # lr_low, lr_high = 1e-7, 0.1
+    # x = mgr.find_initial_lr(criterion, optimizer, lr_low, lr_high)
 
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.6)
-    
+
     mgr.run_training_loop(criterion, optimizer, exp_lr_scheduler)
     # mgr.train_net(criterion, optimizer, exp_lr_scheduler, 1.0)
 

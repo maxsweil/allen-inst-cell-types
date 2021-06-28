@@ -4,8 +4,10 @@ from torchvision import datasets, models, transforms
 import os
 import numpy as np
 
+# A tiny CNN with only 4 layers:
+# Convolution, MaxPooling, Flattened, and Classification
 
-class StickNet(nn.Module):
+class StubNet(nn.Module):
 
     def __init__(self, nfl_units, n_classes=10):
         """
@@ -13,25 +15,19 @@ class StickNet(nn.Module):
             nfl_units (int): number of first layer units, assumed to be 8 for output size calculations
         """
 
-        super(StickNet, self).__init__()
+        super(StubNet, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(3, nfl_units, kernel_size=3, padding=1),  # Output = 8x32x32
+            nn.Conv2d(3, nfl_units, kernel_size=3, padding=1), # Output = 8x32x32
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # Output = 8x16x16
-            nn.Conv2d(nfl_units, 2 * nfl_units, kernel_size=3, padding=1),  # Output = 16x16x16
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # Output = 16x8x8
+            nn.MaxPool2d(kernel_size=2, stride=2) # Output = 8x32x32
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))  # Output = 16x7x7
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7)) # Output 8x7x7
         self.classifier = nn.Sequential(
-            nn.Linear(7 * 7 * 2 * nfl_units, 16 * nfl_units),  # Output = 1x128
+            nn.Linear(7 * 7 * nfl_units, 16 * nfl_units), # Output = 1x128
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(16 * nfl_units, 16 * nfl_units),  # Output = 1x128
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(16 * nfl_units, n_classes)  # Output = n_classes
+            nn.Linear(16 * nfl_units, n_classes) # Output = n_classes
         )
         self._initialize_weights()
 
