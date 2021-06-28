@@ -2,8 +2,8 @@
     "train_net": {
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/train_net.py",
         "run_params": {
-            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
-            "n_classes": 10,
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/",
+            "n_classes": 100,
             "epochs": 300,
             "train_frac": 1.0,
             "batch_size": 128,
@@ -25,7 +25,7 @@
     "save_net_activations": {
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/save_net_activations.py",
         "run_params": {
-            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/",
             "batch_size": 128
         },
         "job_settings": {
@@ -42,8 +42,8 @@
     "gen_nets": {
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/gen_nets.py",
         "run_params": {
-            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/",
-            "n_classes": 10,
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/",
+            "n_classes": 100,
             "n_samples": 10
         },
         "job_settings": {
@@ -60,7 +60,7 @@
     "refresh_dataframes": {
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/refresh_dataframes.py",
         "run_params": {
-            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/briar.doty/data/"
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/"
         },
         "job_settings": {
             "partition": "braintv",

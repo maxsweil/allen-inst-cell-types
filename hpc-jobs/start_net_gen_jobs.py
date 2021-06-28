@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/ python
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jul  2 15:21:08 2020
@@ -103,7 +103,7 @@ def main(dataset, net_names, schemes, config_groups, find_lr_avg):
 
                     # Kicking off HPC job
                     slurm = Slurm(
-                        job_name=f" {net_filepath}",  # Setting name for job
+                        job_name = job_title + f"c-{case}",  # Setting name for job
                         output=job_dir + "output.out",  # Setting destination for output log
                         error=job_dir + "error.err",  # Setting destination for error log
                         **job_settings  # Importing all other jobs settings from job_params.json

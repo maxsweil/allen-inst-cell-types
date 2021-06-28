@@ -23,18 +23,20 @@ except:
     from util import ensure_sub_dir
 
 import matplotlib
+
 large_font_size = 20
 small_font_size = 16
-matplotlib.rc("xtick", labelsize=small_font_size) 
+matplotlib.rc("xtick", labelsize=small_font_size)
 matplotlib.rc("ytick", labelsize=small_font_size)
 
+
 class FunctionVisualizer():
-    
+
     def __init__(self, data_dir, save_fig=False):
-        
+
         self.data_dir = data_dir
         self.save_fig = save_fig
-        
+
     def plot_activation_fns(self, act_fns, clr_set="husl"):
         """
         Plots the given activation functions on the same figure
@@ -42,7 +44,7 @@ class FunctionVisualizer():
 
         x = np.linspace(-100, 100, 10000)
         x = torch.tensor(x)
-        fig, ax = plt.subplots(figsize=(5,5))
+        fig, ax = plt.subplots(figsize=(5, 5))
         clrs = sns.color_palette(clr_set, len(act_fns))
 
         for i in range(len(act_fns)):
@@ -75,7 +77,7 @@ class FunctionVisualizer():
             print("Not saving.")
             plt.show()
             return
-        
+
         sub_dir = ensure_sub_dir(self.data_dir, f"figures/act_fns/")
         fn_names = " & ".join([str(fn) for fn in act_fns])
         filename = f"{fn_names}"
@@ -89,22 +91,22 @@ class FunctionVisualizer():
         """
 
         # plot input space
-        fig, ax = plt.subplots(figsize=(7,5))
-        circle = plt.Circle((0,0),1, color="k", fill=False, linewidth=2)
+        fig, ax = plt.subplots(figsize=(7, 5))
+        circle = plt.Circle((0, 0), 1, color="k", fill=False, linewidth=2)
         ax.add_artist(circle)
         ax.axis("equal")
-        ax.set(xlim=(-2,2), ylim=(-2,2))
-        ax.axvline(0, linestyle="--", alpha=0.25,color="k")
-        ax.axhline(0, linestyle="--", alpha=0.25,color="k")
+        ax.set(xlim=(-2, 2), ylim=(-2, 2))
+        ax.axvline(0, linestyle="--", alpha=0.25, color="k")
+        ax.axhline(0, linestyle="--", alpha=0.25, color="k")
         # plt.savefig("unit_circle.svg")
 
         # plot output space
-        fig, ax = plt.subplots(figsize=(7,5))
+        fig, ax = plt.subplots(figsize=(7, 5))
         ax.axis("equal")
-        ax.set(xlim=(-2,2), ylim=(-2,2))
-        ax.axvline(0, linestyle="--", alpha=0.25,color="k")
-        ax.axhline(0, linestyle="--", alpha=0.25,color="k")
-        x = np.arange(0,2*np.pi, 1/100)
+        ax.set(xlim=(-2, 2), ylim=(-2, 2))
+        ax.axvline(0, linestyle="--", alpha=0.25, color="k")
+        ax.axhline(0, linestyle="--", alpha=0.25, color="k")
+        x = np.arange(0, 2 * np.pi, 1 / 100)
         x1 = torch.tensor(np.sin(x))
         x2 = torch.tensor(np.cos(x))
         ax.plot(x1, x2, "k:", linewidth=2, label="Input")
@@ -122,7 +124,7 @@ class FunctionVisualizer():
             print("Not saving.")
             plt.show()
             return
-        
+
         sub_dir = ensure_sub_dir(self.data_dir, f"figures/act_fns/")
         fn_names = " & ".join([str(fn) for fn in act_fns])
         filename = f"{fn_names}.svg"
@@ -131,15 +133,14 @@ class FunctionVisualizer():
         plt.savefig(filename, dpi=300)
 
 
-if __name__=="__main__":
-    
+if __name__ == "__main__":
     visualizer = FunctionVisualizer(
-        "/home/briardoty/Source/allen-inst-cell-types/data_mountpoint", 
+        "/home/briardoty/Source/allen-inst-cell-types/data_mountpoint",
         save_fig=True)
 
     # visualizer.plot_activation_fns([Tanh(1), Swish(1), Relu()])
     # visualizer.plot_activation_fns([Swish(1), Swish(2), Swish(10)])
-    visualizer.plot_activation_fns([PTanh(0.1), PTanh(0.5), PTanh(1)], clr_set="Set2")
+    # visualizer.plot_activation_fns([PTanh(0.1), PTanh(0.5), PTanh(1)], clr_set="Set2")
     visualizer.plot_activation_fns([PTanh(1), Swish(7.5)])
 
     # visualizer.plot_act_fn_mapping(Swish(1), torch.tanh)

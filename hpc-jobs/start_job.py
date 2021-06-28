@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/ python
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jun 25 17:01:34 2020
@@ -54,13 +54,13 @@ def main(job_title, cases, case, net_name, schemes):
 
     # Kicking off HPC job
     slurm = Slurm(
-        job_name=f" {net_filepath}",  # Setting name for job
+        job_name=job_title,  # Setting name for job
         output=job_dir + "output.out",  # Setting destination for output log
         error=job_dir + "error.err",  # Setting destination for error log
         **job_settings  # Importing all other jobs settings from job_params.json
     )
-    # Executing slurm job using python path specified above and script/params from job_params.json
     slurm.sbatch(python_executable + ' ' + script + ' ' + params_string + ' ' + Slurm.SLURM_ARRAY_TASK_ID)
+    # Executing slurm job using python path specified above and script/params from job_params.json
 
 
 def param_arr_helper(param_arr):

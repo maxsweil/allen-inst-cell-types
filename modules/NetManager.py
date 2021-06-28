@@ -39,7 +39,6 @@ except:
 
 from enum import Enum
 
-
 class TargetLayers(Enum):
     NOTHING = 0
     FIRSTHALF = 1
