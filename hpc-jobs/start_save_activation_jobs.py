@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/ python
 # -*- coding: utf-8 -*-
 
 import argparse

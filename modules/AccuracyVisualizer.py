@@ -28,28 +28,29 @@ except:
     from util import ensure_sub_dir, get_component_cases
 
 import matplotlib
+
 large_font_size = 16
 small_font_size = 14
-matplotlib.rc("xtick", labelsize=16) 
-matplotlib.rc("ytick", labelsize=16) 
+matplotlib.rc("xtick", labelsize=16)
+matplotlib.rc("ytick", labelsize=16)
 
 
 class AccuracyVisualizer():
-    
+
     def __init__(self, data_dir, save_fig=False, save_png=False, sub_dir_name=None):
-        
+
         self.data_dir = data_dir
         self.save_fig = save_fig
         self.save_png = save_png
         self.sub_dir_name = sub_dir_name
-        
+
         self.stats_processor = AccuracyLoader(data_dir)
 
         with open("/home/briardoty/Source/allen-inst-cell-types/hpc-jobs/net_configs.json", "r") as json_file:
             self.net_configs = json.load(json_file)
 
-    def get_prediction_df(self, datasets, net_names, schemes, cases, excl_arr, 
-        pred_type="max", cross_family=None, mixed=True, metric="val_acc"):
+    def get_prediction_df(self, datasets, net_names, schemes, cases, excl_arr,
+                          pred_type="max", cross_family=None, mixed=True, metric="val_acc"):
 
         # pull data
         df, case_dict, _ = self.stats_processor.load_max_acc_df()
@@ -78,24 +79,130 @@ class AccuracyVisualizer():
 
         return sort_df, case_dict
 
+    def plot_final_acc_decomp(self, dataset, net_name, scheme, mixed_case):
+        """
+        Plot accuracy at the end of training for mixed case,
+        including predicted mixed case accuracy based
+        on combination of component cases
+        """
+
+        # pull data
+        df, case_dict, idx_cols = self.stats_processor.load_max_acc_df_ungrouped()
+        component_cases = get_component_cases(case_dict, mixed_case)
+
+        # filter dataframe
+        df = df.query(f"dataset == '{dataset}'") \
+            .query(f"net_name == '{net_name}'") \
+            .query(f"train_scheme == '{scheme}'")
+
+        # plot...
+        markersize = 18
+        c_labels = dict()
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(5, 4), sharey=True)
+        fig.subplots_adjust(wspace=0)
+        c_clrs = sns.color_palette("hls", len(component_cases))
+        c_clrs.reverse()
+
+        # plot component nets
+        x = [-2]
+        width = 0.35
+        lw = 4
+        for i in range(len(component_cases)):
+            cc = component_cases[i]
+            cc_rows = df.query(f"case == '{cc}'")
+            yvals = cc_rows["val_acc"].values * 100
+            start = x[-1] + 2
+            x = [i for i in range(start, start + len(yvals))]
+
+            axes[0].plot([i] * len(yvals), yvals, ".", label=cc,
+                         c=c_clrs[i], markersize=markersize, alpha=0.6)
+            axes[0].plot([i - width, i + width], [np.mean(yvals), np.mean(yvals)],
+                         linestyle=":", label=cc, c=c_clrs[i], linewidth=lw)
+
+            cc = cc.replace("tanh", "ptanh")
+            c_labels[i] = cc
+
+        # plot mixed case
+        # actual
+        mwidth = width + 0.09
+        m_clrs = sns.color_palette("hls", len(component_cases) + 3)
+        m_rows = df.query(f"case == '{mixed_case}'")
+        yact = m_rows["val_acc"].values * 100
+        axes[1].plot([0] * len(yact), yact, ".", label=cc,
+                     c=m_clrs[len(component_cases)], markersize=markersize, alpha=0.6)
+        axes[1].plot([-mwidth, mwidth], [np.mean(yact), np.mean(yact)],
+                     linestyle=":", c=m_clrs[len(component_cases)], linewidth=lw)
+
+        # predicted
+        pred_types = ["max", "linear"]
+        handles = dict()
+        for pred_type, clr in zip(pred_types, m_clrs[-2:]):
+            ypred = m_rows[f"{pred_type}_pred"].mean() * 100
+            h = axes[1].plot([-width, width], [ypred, ypred],
+                             label=cc, c=clr, linewidth=lw)
+
+            # legend stuff
+            handles[pred_type] = h[0]
+
+        # legend stuff
+        handles["mean"] = axes[0].plot(-100, ypred, "k:",
+                                       linewidth=lw, alpha=0.5)[0]
+
+        # set figure text
+        axes[0].set_xlabel("Component", fontsize=16,
+                           labelpad=10)
+        axes[1].set_xlabel("Mixed", fontsize=large_font_size,
+                           labelpad=10)
+        axes[0].set_ylabel("Final validation accuracy (%)",
+                           fontsize=large_font_size, labelpad=10)
+        axes[0].set_xlim([-0.5, len(component_cases) - 0.5])
+        axes[1].set_xlim([-0.5, 0.5])
+        axes[0].set_xticks(list(c_labels.keys()))
+        axes[0].tick_params(axis="y", labelsize=12)
+        axes[0].set_xticklabels(list(c_labels.values()), fontsize=12)
+        axes[1].set_xticks([0])
+        l = mixed_case.replace("tanh", "ptanh")
+        axes[1].set_xticklabels([l], fontsize=12)
+        plt.tight_layout()
+        # plt.tight_layout(rect=[0, 0, 1, 0.92])
+
+        # shrink axes...
+        box1 = axes[0].get_position()
+        axes[0].set_position([box1.x0, box1.y0, box1.width * 0.8, box1.height])
+        box2 = axes[1].get_position()
+        axes[1].set_position([box1.x0 + box1.width * 1.2, box2.y0, box2.width * 0.3, box2.height])
+
+        # append legend to second axis
+        axes[1].legend(handles.values(), handles.keys(),
+                       fontsize=12, loc="center left", bbox_to_anchor=(1, 0.5))
+
+        # optional saving
+        if not self.save_fig:
+            print("Not saving.")
+            plt.show()
+            return
+
+        filename = f"{mixed_case} comparison"
+        self.save("decomposition", filename)
+
     def plot_ratio_group(self, dataset, net_name, scheme, ratio_group):
 
         # build dict for looking up cases in group
         ratio_cases = list(self.net_configs[ratio_group].keys())
-        
+
         # pull data
-        sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], ratio_cases, 
-            [], "max", None)
-        
+        sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], ratio_cases,
+                                                    [], "max", None)
+
         # get component cases as either extreme
         cc_names = get_component_cases(case_dict, ratio_cases[0])
         cases = [cc_names[0]] + ratio_cases + [cc_names[1]]
 
-        sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], cases, 
-            [], "max", None, mixed=False)
+        sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], cases,
+                                                    [], "max", None, mixed=False)
 
         # plot
-        fig, ax = plt.subplots(figsize=(6,5))
+        fig, ax = plt.subplots(figsize=(6, 5))
 
         x = [-2]
         clrs = sns.color_palette("Set2", 2)
@@ -110,14 +217,14 @@ class AccuracyVisualizer():
 
             try:
                 xlabels[i] = ":".join([str(n) for n in self.net_configs[ratio_group][c]["n_repeat"]])
-                ax.plot([i, i], [yval - yerr, yval + yerr], linestyle="-", 
-                    c=clrs[0], linewidth=lw, alpha=.8)
+                ax.plot([i, i], [yval - yerr, yval + yerr], linestyle="-",
+                        c=clrs[0], linewidth=lw, alpha=.8)
                 h = ax.plot(i, yval, c=clrs[0], marker="o")
                 handles["mixed"] = h[0]
             except KeyError:
                 xlabels[i] = c
-                ax.plot([i, i], [yval - yerr, yval + yerr], linestyle="-", 
-                    c=clrs[1], linewidth=lw, alpha=.8)
+                ax.plot([i, i], [yval - yerr, yval + yerr], linestyle="-",
+                        c=clrs[1], linewidth=lw, alpha=.8)
                 h = ax.plot(i, yval, c=clrs[1], marker="o")
                 handles["component"] = h[0]
 
@@ -128,14 +235,14 @@ class AccuracyVisualizer():
 
         ypred1 = sort_df.query(f"case == '{cases[0]}'")["max_val_acc"]["mean"][0] * 100
         ypred2 = sort_df.query(f"case == '{cases[-1]}'")["max_val_acc"]["mean"][0] * 100
-        h = ax.plot([0, len(cases) - 1], [ypred1, ypred2], linestyle=":", c="k", 
-            alpha=.5)
+        h = ax.plot([0, len(cases) - 1], [ypred1, ypred2], linestyle=":", c="k",
+                    alpha=.5)
         handles["linear pred"] = h[0]
 
         # set figure text
         ax.set_xlabel("Net ratio", fontsize=16, labelpad=-10)
-        ax.set_ylabel("Final validation accuracy (%)", 
-            fontsize=large_font_size, labelpad=10)
+        ax.set_ylabel("Final validation accuracy (%)",
+                      fontsize=large_font_size, labelpad=10)
         ax.set_xticks(list(xlabels.keys()))
         ax.set_xticklabels(list(xlabels.values()), fontsize=12, rotation=45)
         ax.tick_params(axis="y", labelsize=12)
@@ -143,7 +250,7 @@ class AccuracyVisualizer():
 
         # append legend
         ax.legend(handles.values(), handles.keys(), fontsize=12)
-         
+
         # optional saving
         if not self.save_fig:
             print("Not saving.")
@@ -153,15 +260,14 @@ class AccuracyVisualizer():
         filename = f"{ratio_group}"
         self.save("ratio group", filename)
 
-
-    def plot_family_supplement(self, dataset, net_names, schemes, excl_arr, 
-        pred_type="max", metric="val_acc", cross_family=None, ymax=3, ymin=0):
+    def plot_family_supplement(self, dataset, net_names, schemes, excl_arr,
+                               pred_type="max", metric="val_acc", cross_family=None, ymax=3, ymin=0):
 
         # pull data
-        df, _ = self.get_prediction_df([dataset], net_names, schemes, 
-            [], excl_arr=excl_arr, pred_type=pred_type, 
-            cross_family=cross_family, mixed=True, metric=metric)
-        
+        df, _ = self.get_prediction_df([dataset], net_names, schemes,
+                                       [], excl_arr=excl_arr, pred_type=pred_type,
+                                       cross_family=cross_family, mixed=True, metric=metric)
+
         # final accuracy
         df = df.query("epoch == -1")
 
@@ -169,12 +275,12 @@ class AccuracyVisualizer():
         # df = df[df.max_pred_val_acc_rej_h0 == True]
 
         # filter vgg tanh2 because it's terrible
-        df = df.query(f"not (net_name == 'vgg11' and (case.str.contains('tanh2') or (case.str.startswith('tanh') and case.str.endswith('-2'))))",
+        df = df.query(
+            f"not (net_name == 'vgg11' and (case.str.contains('tanh2') or (case.str.startswith('tanh') and case.str.endswith('-2'))))",
             engine="python")
 
-
         # plot
-        fig, ax = plt.subplots(figsize=(5,5))
+        fig, ax = plt.subplots(figsize=(5, 5))
         net_vals = list(df.index.unique(level=1))
         net_vals.reverse()
         # x = np.array([i * 1.25 for i in range(len(net_vals))])
@@ -193,10 +299,9 @@ class AccuracyVisualizer():
             net = net_vals[i]
 
             for j in range(len(cf_vals)):
-
                 cf = cf_vals[j]
                 yvals = df.query(f"net_name == '{net}'") \
-                    .query(f"cross_fam == {cf}")[f"{metric}_vs_{pred_type}"].values *100
+                            .query(f"cross_fam == {cf}")[f"{metric}_vs_{pred_type}"].values * 100
                 ymean = np.mean(yvals)
 
                 # plot
@@ -205,27 +310,27 @@ class AccuracyVisualizer():
                 alpha = 1 if cf else 0.4
 
                 ax.plot([x] * len(yvals), yvals, ".", label=label,
-                    c=clr, markersize=markersize, alpha=alpha)
-                ax.plot([x-width, x+width], [ymean, ymean], 
-                    label=label, c=clr, linewidth=lw, alpha=alpha)
+                        c=clr, markersize=markersize, alpha=alpha)
+                ax.plot([x - width, x + width], [ymean, ymean],
+                        label=label, c=clr, linewidth=lw, alpha=alpha)
 
                 x += 1
-            
+
         # legend
         gray = (0.5, 0.5, 0.5)
-        h1 = ax.plot(100, ymean, ".", label=label, 
-            color=gray, markersize=markersize, alpha=1)
+        h1 = ax.plot(100, ymean, ".", label=label,
+                     color=gray, markersize=markersize, alpha=1)
         handles["Cross-family"] = h1[0]
-        h2 = ax.plot(100, ymean, ".", label=label, 
-            color=gray, markersize=markersize, alpha=0.4)
+        h2 = ax.plot(100, ymean, ".", label=label,
+                     color=gray, markersize=markersize, alpha=0.4)
         handles["Within-family"] = h2[0]
-        handles["Mean"] = ax.plot(-100, ymean, "k", 
-            linewidth=lw, alpha=0.5)[0]
+        handles["Mean"] = ax.plot(-100, ymean, "k",
+                                  linewidth=lw, alpha=0.5)[0]
 
         # plot text
         ax.set_xticks([0.5, 2.5])
         ax.set_xticklabels(net_vals)
-        ax.set_xlim([-1/2., 3.5])
+        ax.set_xlim([-1 / 2., 3.5])
         ax.set_ylim([ymin, ymax])
 
         ax.axhline(y=0, color="k", linestyle="--", alpha=0.2)
@@ -237,18 +342,18 @@ class AccuracyVisualizer():
 
         self.save("supplementary", f"family_{pred_type}")
 
-    def plot_network_supplement(self, dataset, net_names, schemes, excl_arr, 
-        pred_type="max", cross_family=None):
+    def plot_network_supplement(self, dataset, net_names, schemes, excl_arr,
+                                pred_type="max", cross_family=None):
 
         # pull data
-        df, _ = self.get_prediction_df([dataset], net_names, schemes, [], excl_arr, 
-            pred_type, cross_family)
+        df, _ = self.get_prediction_df([dataset], net_names, schemes, [], excl_arr,
+                                       pred_type, cross_family)
 
         # filter to just p-val < 0.05
         df = df[df.max_pred_val_acc_rej_h0 == True]
 
         # plot
-        fig, ax = plt.subplots(figsize=(5,5))
+        fig, ax = plt.subplots(figsize=(5, 5))
         x = 0
         net_vals = list(df.index.unique(level=1))
         net_vals.reverse()
@@ -256,13 +361,12 @@ class AccuracyVisualizer():
         labels = []
         ticks = []
         for i in range(len(net_vals)):
-
             net = net_vals[i]
             yvals = df.query(f"net_name == '{net}'")[f"val_acc_vs_{pred_type}"]
             ymean = np.mean(yvals) * 100
             labels.append(net)
             ticks.append(x)
-            ax.bar(x, ymean, 1/len(net_vals), label=net, color=clrs[i])
+            ax.bar(x, ymean, 1 / len(net_vals), label=net, color=clrs[i])
             x += 0.5
 
         ax.axhline(y=0, color="k", linestyle="--", alpha=0.2)
@@ -274,31 +378,30 @@ class AccuracyVisualizer():
 
         self.save("supplementary", "network")
 
-    def plot_dataset_supplement(self, datasets, net_names, schemes, excl_arr, 
-        pred_type="max", cross_family=None):
+    def plot_dataset_supplement(self, datasets, net_names, schemes, excl_arr,
+                                pred_type="max", cross_family=None):
 
         # pull data
-        df, _ = self.get_prediction_df(datasets, net_names, schemes, [], excl_arr, 
-            pred_type, cross_family)
+        df, _ = self.get_prediction_df(datasets, net_names, schemes, [], excl_arr,
+                                       pred_type, cross_family)
 
         # filter to just p-val < 0.05
         df = df[df.max_pred_rej_h0 == True]
 
         # plot
-        fig, ax = plt.subplots(figsize=(5,5))
+        fig, ax = plt.subplots(figsize=(5, 5))
         x = 0
         dataset_vals = list(df.index.unique(level=0))
         clrs = sns.color_palette("Set1", len(dataset_vals))
         labels = []
         ticks = []
         for i in range(len(dataset_vals)):
-
             dataset = dataset_vals[i]
             yvals = df.query(f"dataset == '{dataset}'")[f"acc_vs_{pred_type}"]
             ymean = np.mean(yvals) * 100
             labels.append(dataset)
             ticks.append(x)
-            ax.bar(x, ymean, 1/len(dataset_vals), label=dataset, color=clrs[i])
+            ax.bar(x, ymean, 1 / len(dataset_vals), label=dataset, color=clrs[i])
             x += 0.5
 
         ax.axhline(y=0, color="k", linestyle="--", alpha=0.2)
@@ -310,10 +413,10 @@ class AccuracyVisualizer():
 
         self.save("supplementary", "dataset")
 
-    def scatter_acc(self, datasets, net_names, schemes, excl_arr, 
-        pred_type="max", cross_family=None):
+    def scatter_acc(self, datasets, net_names, schemes, excl_arr,
+                    pred_type="max", cross_family=None):
         """
-        Plot a scatter plot of predicted vs actual max accuracy for the 
+        Plot a scatter plot of predicted vs actual max accuracy for the
         given mixed cases.
         """
 
@@ -322,7 +425,7 @@ class AccuracyVisualizer():
 
         # filter dataframe
         df = df.query(f"is_mixed")
-        df = df.query(f"dataset in {datasets}") 
+        df = df.query(f"dataset in {datasets}")
         df = df.query(f"net_name in {net_names}")
         df = df.query(f"train_scheme in {schemes}")
         if cross_family is not None:
@@ -331,7 +434,7 @@ class AccuracyVisualizer():
             df = df.query(f"not case.str.contains('{excl}')", engine="python")
 
         # plot
-        fig, ax = plt.subplots(figsize=(12,12))
+        fig, ax = plt.subplots(figsize=(12, 12))
 
         # identifiers
         fmts = [".", "^"]
@@ -342,14 +445,13 @@ class AccuracyVisualizer():
         i = 0
         xmin, ymin, xmax, ymax = 100, 100, 10, 10
         for midx in df.index.values:
-
             # dataset, net, scheme, case, mixed
             d, n, sch, g, c, m, cf = midx
 
             # pick identifiers
-            clr = clrs[datasets.index(d)] # dataset
-            mfc = None if cf else "None" # xfam vs within fam
-            fmt = fmts[net_names.index(n)] # net
+            clr = clrs[datasets.index(d)]  # dataset
+            mfc = None if cf else "None"  # xfam vs within fam
+            fmt = fmts[net_names.index(n)]  # net
             alpha = 0.15 if cf else 0.4
 
             # actual
@@ -359,14 +461,14 @@ class AccuracyVisualizer():
             # prediction
             x_pred = df.loc[midx][f"{pred_type}_pred"]["mean"] * 100
             x_err = df.loc[midx][f"{pred_type}_pred"]["std"] * 100 * 1.98
-            
+
             # plot
             h = ax.plot(x_pred, y_act, c=clr, marker=fmt, markersize=ms,
-                markerfacecolor=mfc, alpha=alpha)
+                        markerfacecolor=mfc, alpha=alpha)
 
             facecolor = clr if cf else "None"
-            lipse = matplotlib.patches.Ellipse((x_pred, y_act), x_err, y_err, 
-                facecolor=facecolor, edgecolor=clr, alpha=alpha)
+            lipse = matplotlib.patches.Ellipse((x_pred, y_act), x_err, y_err,
+                                               facecolor=facecolor, edgecolor=clr, alpha=alpha)
             ax.add_patch(lipse)
 
             # update limits
@@ -379,19 +481,19 @@ class AccuracyVisualizer():
 
         # plot reference line
         x = np.linspace(0, 100, 500)
-        ax.plot(x, x, c=(0.5, 0.5, 0.5, 0.25), dashes=[6,2])
+        ax.plot(x, x, c=(0.5, 0.5, 0.5, 0.25), dashes=[6, 2])
 
         # build legend handles
         handles = dict()
         gray = (0.5, 0.5, 0.5)
         ms = ms * 1.5
         for n in net_names:
-            fmt = fmts[net_names.index(n)] # net
+            fmt = fmts[net_names.index(n)]  # net
             h = ax.plot(1000, 1000, c=gray, marker=fmt, markersize=ms)
             handles[n] = h[0]
-        
+
         for d in datasets:
-            clr = clrs[datasets.index(d)] # dataset
+            clr = clrs[datasets.index(d)]  # dataset
             h = ax.plot(1000, 1000, c=clr, marker=".", markersize=ms)
             handles[d] = h[0]
 
@@ -404,14 +506,14 @@ class AccuracyVisualizer():
         # set figure text
         ax.set_xlabel(f"{pred_type.capitalize()} predicted accuracy (%)", fontsize=20)
         ax.set_ylabel("Actual accuracy (%)", fontsize=20)
-        
+
         ax.set_xlim([xmin - 1, xmax + 1])
         ax.set_ylim([ymin - 1, ymax + 1])
         ax.set_aspect("equal", "box")
         ax.legend(handles.values(), handles.keys(), fontsize=18)
 
         plt.tight_layout()
-         
+
         # optional saving
         if not self.save_fig:
             plt.show()
@@ -433,7 +535,7 @@ class AccuracyVisualizer():
 
         print(f"Saving... {filename}")
 
-        plt.savefig(f"{filename}.svg")  
+        plt.savefig(f"{filename}.svg")
 
         if self.save_png:
             plt.savefig(f"{filename}.png", dpi=300)
@@ -453,15 +555,15 @@ class AccuracyVisualizer():
             ratio_cases = list(self.net_configs[rg].keys())
 
             # pull data
-            sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], ratio_cases, 
-                [], "max", None)
-            
+            sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], ratio_cases,
+                                                        [], "max", None)
+
             # get component cases as either extreme
             cc_names = get_component_cases(case_dict, ratio_cases[0])
             cases = [cc_names[0]] + ratio_cases + [cc_names[1]]
 
-            sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], cases, 
-                [], "max", None, mixed=False)
+            sort_df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], cases,
+                                                        [], "max", None, mixed=False)
 
             # update preds on component cases
             if metric == "acc_vs_max":
@@ -472,7 +574,7 @@ class AccuracyVisualizer():
                     sort_df.loc[row[0], "acc_vs_max"] = acc - max_pred
 
             # build array of relative accuracies for this rg
-            rg_arr = list() 
+            rg_arr = list()
             for c in cases:
                 row = sort_df.query(f"case == '{c}'")
                 if len(row) == 0:
@@ -486,7 +588,7 @@ class AccuracyVisualizer():
                 if yval == yval:
                     vmin = min(yval, vmin)
                     vmax = max(yval, vmax)
-            
+
             if len(rg_arr) > 1:
                 ratio_matrix[rg] = rg_arr
 
@@ -514,12 +616,12 @@ class AccuracyVisualizer():
 
         ax.set_xlabel("Net ratio", fontsize=large_font_size)
         ax.set_ylabel("Net config", fontsize=large_font_size)
-        xlabels = [f"{10-i}:{i}" for i in range(11)]
+        xlabels = [f"{10 - i}:{i}" for i in range(11)]
         xticks = [i for i in range(len(xlabels))]
         ax.set_xticks(xticks)
         ax.set_xticklabels(xlabels, fontsize=12, rotation=45)
         yticks = [i for i in range(len(ratio_matrix))]
-        ylabels = [rg[len("ratios-"):]for rg, v in ratio_matrix]
+        ylabels = [rg[len("ratios-"):] for rg, v in ratio_matrix]
         ax.set_yticks(yticks)
         ax.set_yticklabels(ylabels, fontsize=12)
 
@@ -531,16 +633,16 @@ class AccuracyVisualizer():
         else:
             plt.show()
 
-    def heatmap_acc(self, dataset, net_name, scheme, metric="acc_vs_max", 
-        cmap="RdBu_r", v_min=None, v_max=None):
+    def heatmap_acc(self, dataset, net_name, scheme, metric="acc_vs_max",
+                    cmap="RdBu_r", v_min=None, v_max=None):
 
         # pull data
-        df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], list(), 
-            [], "max", cross_family=None, mixed=False)
-        
+        df, case_dict = self.get_prediction_df([dataset], [net_name], [scheme], list(),
+                                               [], "max", cross_family=None, mixed=False)
+
         # final accuracy
         df = df.query("epoch == -1")
-        
+
         # build parameter matrices
         p_dict = dict()
         for k in df.index.unique(level=df.index.names.index("case")):
@@ -550,7 +652,7 @@ class AccuracyVisualizer():
                 if p_dict.get(fn) is None:
                     p_dict[fn] = set()
                 p_dict[fn].add(float(p))
-        p_dict = { k: sorted(v) for k, v in p_dict.items() }
+        p_dict = {k: sorted(v) for k, v in p_dict.items()}
 
         within_mats, cross_mats = dict(), dict()
         fn_keys = list(p_dict.keys())
@@ -563,10 +665,10 @@ class AccuracyVisualizer():
 
         vmin = 100
         vmax = -100
-        vm_dict = { "xf": {"vmin": vmin, "vmax": vmax}, "swish": {"vmin": vmin, "vmax": vmax}, "tanh": {"vmin": vmin, "vmax": vmax} }
+        vm_dict = {"xf": {"vmin": vmin, "vmax": vmax}, "swish": {"vmin": vmin, "vmax": vmax},
+                   "tanh": {"vmin": vmin, "vmax": vmax}}
         for midx, row in df.iterrows():
             d, n, sch, g, c, e, m, xf = midx
-
 
             cc_arr = get_component_cases(case_dict, c)
             cc_fns = tuple([case_dict[cc]["act_fns"][0] for cc in cc_arr])
@@ -622,7 +724,7 @@ class AccuracyVisualizer():
             v_min = vm_dict[k]["vmin"] if v_min is None else v_min
             v_max = vm_dict[k]["vmax"] if v_max is None else v_max
             im = plt.imshow(np.flip(v, axis=1), cmap=cmap, vmin=v_min, vmax=v_max)
-            
+
             ax = plt.gca()
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.1)
@@ -639,7 +741,7 @@ class AccuracyVisualizer():
             ax.set_xticklabels(tlabels, fontsize=small_font_size)
             ax.set_yticks(tticks)
             ax.set_yticklabels(list(reversed(tlabels)), fontsize=small_font_size)
-            
+
             title = f"Within-family {net_name}"
             ax.set_title(title, fontsize=large_font_size)
             plt.tight_layout()
@@ -649,7 +751,7 @@ class AccuracyVisualizer():
                 self.save("heatmaps", filename)
             else:
                 plt.show()
-        
+
         for k, v in cross_mats.items():
             plt.figure()
             v_min = vm_dict["xf"]["vmin"] if v_min is None else v_min
@@ -686,43 +788,41 @@ class AccuracyVisualizer():
     def plot_all_samples_accuracy(self, dataset, net_name, scheme, case, acc_type="val"):
 
         # pull data
-        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name, 
-            [scheme], [case])
+        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name,
+                                                       [scheme], [case])
 
         # process a bit
         index_cols = ["dataset", "net_name", "train_scheme", "case", "sample"]
         acc_df.set_index(index_cols, inplace=True)
 
-
         # plot...
-        fig, ax = plt.subplots(figsize=(8,5))
+        fig, ax = plt.subplots(figsize=(8, 5))
         idxs = acc_df.index.unique()
         clrs = sns.color_palette("hls", len(idxs))
 
         # plot acc
         for i in range(len(idxs)):
-
             idx = idxs[i]
             epochs = acc_df.loc[idx]
-            
+
             yvals = epochs[f"{acc_type}_acc"].values * 100
             ax.plot(range(len(yvals)), yvals, c=clrs[i], label=i)
-        
+
         # figure text
         # fig.suptitle(f"Classification accuracy during training: {net_name} on {dataset}", fontsize=large_font_size)
         ax.set_xlabel("Epoch", fontsize=large_font_size)
         ax.set_ylabel(f"{acc_type} accuracy (%)", fontsize=large_font_size)
         ax.set_ylim([10, 100])
         ax.legend(fontsize=small_font_size)
-        
+
         plt.tight_layout()
-        
+
         # optional saving
         if not self.save_fig:
             print("Not saving.")
             plt.show()
             return
-        
+
         sub_dir = ensure_sub_dir(self.data_dir, f"figures/accuracy/")
         filename = f"{dataset}_{net_name}_{scheme}_{case} accuracy"
         filename = os.path.join(sub_dir, filename)
@@ -730,8 +830,8 @@ class AccuracyVisualizer():
         plt.savefig(f"{filename}.svg")
         plt.savefig(f"{filename}.png", dpi=300)
 
-    def plot_single_accuracy(self, dataset, net_name, scheme, case, 
-        metric="z", sample=0):
+    def plot_single_accuracy(self, dataset, net_name, scheme, case,
+                             metric="z", sample=0):
         """
         Plot single net accuracy trajectory with windowed z score
 
@@ -744,8 +844,8 @@ class AccuracyVisualizer():
         """
 
         # pull data
-        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name, 
-            [scheme], [case])
+        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name,
+                                                       [scheme], [case])
 
         # filter more
         acc_df = acc_df.query(f"sample == {sample}")
@@ -772,12 +872,12 @@ class AccuracyVisualizer():
                 w_std = np.std(acc_df.loc[w_idx, "val_acc"])
                 z_score = (v_acc - w_mean) / w_std if w_std != 0 else 0
                 acc_df.at[idx, "z"] = z_score
-            
+
             # compute windowed deriv
             elif metric == "deriv":
                 points = 7
-                rhs = np.mean(acc_df.loc[idx-points:idx, "val_acc"])
-                lhs = np.mean(acc_df.loc[start_idx-points:start_idx, "val_acc"])
+                rhs = np.mean(acc_df.loc[idx - points:idx, "val_acc"])
+                lhs = np.mean(acc_df.loc[start_idx - points:start_idx, "val_acc"])
                 w_deriv = (rhs - lhs) / (e - w_start)
                 w_deriv = 0 if w_deriv != w_deriv else w_deriv
                 acc_df.at[idx, "deriv"] = w_deriv
@@ -788,10 +888,9 @@ class AccuracyVisualizer():
                 diff = v_acc - w_vals
                 alex = np.mean(diff)
                 acc_df.at[idx, "alex"] = alex
-                
 
         # plot...
-        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(14,8), sharex=True)
+        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(14, 8), sharex=True)
         fig.subplots_adjust(hspace=0)
         clrs = sns.color_palette("Set2", 4)
 
@@ -807,15 +906,15 @@ class AccuracyVisualizer():
         cvals = acc_df[metric].values
         axes[1].plot(range(len(cvals)), cvals, c=clrs[1])
         axes[1].axhline(0, color="k", linestyle="--", alpha=0.5)
-        
+
         # highlight consecutive negative convergence vals
         consec = 3
         for i in range(len(cvals)):
 
-            prev_consec_neg = [True if z < 0 else False for z in cvals[i-consec+1:i+1]]
+            prev_consec_neg = [True if z < 0 else False for z in cvals[i - consec + 1:i + 1]]
             if len(prev_consec_neg) == 0:
                 continue
-            prev_consec_neg = functools.reduce(lambda a,b : a and b, prev_consec_neg)
+            prev_consec_neg = functools.reduce(lambda a, b: a and b, prev_consec_neg)
             if (prev_consec_neg):
                 axes[1].plot(i, cvals[i], marker="*", c=clrs[3])
 
@@ -826,13 +925,13 @@ class AccuracyVisualizer():
         axes[1].set_ylabel(f"Convergence metric over {window} epochs", fontsize=12)
         axes[0].set_ylim([10, 100])
         plt.tight_layout()
-        
+
         # optional saving
         if not self.save_fig:
             print("Not saving.")
             plt.show()
             return
-        
+
         filename = f"{dataset}_{net_name}_{scheme}_{case}_{sample}_{metric} convergence"
         self.save("convergence", filename)
 
@@ -851,26 +950,25 @@ class AccuracyVisualizer():
 
         """
         # pull data
-        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name, 
-            schemes, cases)
+        acc_df = self.stats_processor.load_accuracy_df(dataset, net_name,
+                                                       schemes, cases)
 
         # process a bit
-        acc_df = acc_df.query(f"group in {groups}") 
+        acc_df = acc_df.query(f"group in {groups}")
         index_cols = ["dataset", "net_name", "train_scheme", "case", "epoch"]
         acc_df.set_index(index_cols, inplace=True)
-        df_stats = acc_df.groupby(index_cols).agg({ "val_acc": [np.mean, np.std] })
+        df_stats = acc_df.groupby(index_cols).agg({"val_acc": [np.mean, np.std]})
 
         # group
         df_groups = df_stats.groupby(index_cols[:-1])
-        
+
         # plot
-        fig, ax = plt.subplots(figsize=(14,8))
+        fig, ax = plt.subplots(figsize=(14, 8))
         clrs = sns.color_palette("hls", len(df_groups.groups))
-        
+
         y_arr = []
         yerr_arr = []
         for group, clr in zip(df_groups.groups, clrs):
-
             d, n, s, c = group
             group_data = df_groups.get_group(group)
 
@@ -879,12 +977,12 @@ class AccuracyVisualizer():
             yerr = group_data["val_acc"]["std"].values * 1.98 * 100
             ax.plot(range(len(yvals)), yvals, label=f"{s} {c}", c=clr)
             ax.fill_between(range(len(yvals)), yvals - yerr, yvals + yerr,
-                    alpha=0.1, facecolor=clr)
+                            alpha=0.1, facecolor=clr)
 
             # for the insert...
             y_arr.append(yvals)
             yerr_arr.append(yerr)
-            
+
         # zoomed inset
         if inset:
             axins = zoomed_inset_axes(ax, zoom=10, loc=8)
@@ -895,7 +993,7 @@ class AccuracyVisualizer():
                 yerr_end = yerr[-nlast:]
                 axins.plot(x, y_end, c=clr)
                 axins.fill_between(x, y_end - yerr_end, y_end + yerr_end,
-                        alpha=0.1, facecolor=clr)
+                                   alpha=0.1, facecolor=clr)
 
             mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
             axins.xaxis.set_ticks([])
@@ -905,15 +1003,15 @@ class AccuracyVisualizer():
         ax.set_ylabel("Validation accuracy (%)", fontsize=16)
         ax.set_ylim([0, 100])
         ax.legend(fontsize=14)
-        
+
         plt.tight_layout()
-        
+
         # optional saving
         if not self.save_fig:
             print("Not saving.")
             plt.show()
             return
-        
+
         sub_dir = ensure_sub_dir(self.data_dir, f"figures/accuracy/")
         case_names = ", ".join(cases)
         schemes = ", ".join(schemes)
@@ -922,43 +1020,38 @@ class AccuracyVisualizer():
         print(f"Saving... {filename}")
         plt.savefig(f"{filename}.svg")
         plt.savefig(f"{filename}.png", dpi=300)
-        
 
-if __name__=="__main__":
-    
+
+if __name__ == "__main__":
     vis = AccuracyVisualizer(
-        "/home/briardoty/Source/allen-inst-cell-types/data_mountpoint", 
+        "/home/briardoty/Source/allen-inst-cell-types/data_mountpoint",
         save_fig=True,
         save_png=False
-        )
-    
+    )
+
     # vis.plot_ratio_group("cifar10", "sticknet8", "adam", "ratios-swish2-tanh2")
 
     # vis.plot_final_acc_decomp("cifar10", "sticknet8", "adam", "swish7.5-tanh0.1")
 
     vis.plot_all_samples_accuracy("cifar10", "sticknet8", "adam-lr-avg", "swish7.5-tanh1", acc_type="val")
 
-    # vis.plot_single_accuracy("cifar10", "vgg11", "adam", "swish10", 
+    # vis.plot_single_accuracy("cifar10", "vgg11", "adam", "swish10",
     #     metric="deriv",
     #     sample=2)
 
-    # vis.plot_accuracy("cifar10", 
-    #     "sticknet8", 
+    # vis.plot_accuracy("cifar10",
+    #     "sticknet8",
     #     ["adam"],
     #     ["train-val-split"],
     #     ["relu", "swish5-tanh0.5"],
     #     inset=False)
-    # vis.plot_accuracy("cifar10", 
-    #     "vgg11", 
-    #     ["adam"], 
+    # vis.plot_accuracy("cifar10",
+    #     "vgg11",
+    #     ["adam"],
     #     ["tanh0.5", "tanh0.5a", "tanh0.5b", "tanh0.5c"],
     #     inset=False)
-    # vis.plot_accuracy("cifar10", 
-    #     "vgg11", 
-    #     ["adam"], 
+    # vis.plot_accuracy("cifar10",
+    #     "vgg11",
+    #     ["adam"],
     #     ["swish5-tanh0.5", "swish5-tanh0.5-alla", "swish5-tanh0.5-allb", "swish5-tanh0.5-allc"],
     #     inset=False)
-
-
-
-

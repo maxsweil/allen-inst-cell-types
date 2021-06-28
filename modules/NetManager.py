@@ -39,7 +39,6 @@ except:
 
 from enum import Enum
 
-
 class TargetLayers(Enum):
     NOTHING = 0
     FIRSTHALF = 1
@@ -625,7 +624,7 @@ class NetManager():
             return wdiff
 
     def run_training_loop(self, criterion, optimizer, scheduler, train_frac=1.,
-                          end_epoch=10, snap_freq=1000):
+                          end_epoch=10, snap_freq=50):
         """
         Run end_epoch of training and validation
         """
