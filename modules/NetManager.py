@@ -176,7 +176,7 @@ class NetManager():
         elif self.net_name == "sticknet8":
             self.net = StickNet(8)
 
-        elif self.netname == "stubnet8":
+        elif self.net_name == "stubnet8":
             self.net = StubNet(8)
 
         else:
