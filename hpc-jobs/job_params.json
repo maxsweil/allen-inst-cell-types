@@ -44,7 +44,7 @@
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/",
             "n_classes": 100,
-            "n_samples": 10
+            "n_samples": 20
         },
         "job_settings": {
             "partition": "braintv",

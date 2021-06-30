@@ -70,7 +70,7 @@ def main(group, case, conv_layers, fc_layers, default_fn, n_repeat, act_fns, act
         elif "adam" in scheme:
             if net_name == "vgg11":
                 lr_low, lr_high = 1e-7, 0.005
-            elif net_name == "sticknet8":
+            elif net_name == "sticknet8" or net_name == "stubnet8":
                 lr_low, lr_high = 1e-7, 0.1
         
         (criterion, optimizer, _) = get_training_vars(scheme, manager, 
