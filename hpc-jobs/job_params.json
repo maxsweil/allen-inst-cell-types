@@ -72,4 +72,23 @@
             "mail_type": "ALL"
         }
     }
+    "gen_dataframes": {
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/gen_dataframes.py",
+        "run_params": {
+            "net_name": "stubnet8"
+            "dataset" : "cifar10"
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/nets/",
+            "save_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dataframes/"
+            "epoch_num": "150",
+        },
+        "job_settings": {
+            "partition": "braintv",
+            "mem": "32g",
+            "time": "8:00:00",
+            "ntasks": 4,
+            "nodes": 1,
+            "gpus": 1,
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
+    }
 }
