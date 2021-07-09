@@ -75,8 +75,6 @@
     "gen_dataframes": {
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/gen_dataframes.py",
         "run_params": {
-            "net_name": "stubnet8",
-            "dataset" : "cifar10",
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/nets/",
             "save_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dataframes/",
             "epoch_num": "150"

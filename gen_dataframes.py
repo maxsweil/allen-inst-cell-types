@@ -48,6 +48,7 @@ def main(net_name, dataset, data_dir, save_dir, epoch_num):
         df[filepaths[filepath][0]][filepaths[filepath][1]] = torch.load(filepath)['val_acc']
 
     # Saving dataframe to previously designated directory
+    print('Saving to ' + os.path.join(save_path,f'{net_name}_{dataset}_perfdf.csv'))
     df.to_csv(os.path.join(save_path, f'{net_name}_{dataset}_perfdf.csv'))
 
 

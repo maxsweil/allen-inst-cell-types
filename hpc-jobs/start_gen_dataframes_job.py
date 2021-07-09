@@ -29,6 +29,10 @@ def main(job_title, net_name, dataset):
     script = job_params["script"]
     run_params = job_params["run_params"]
     job_settings = job_params["job_settings"]
+    
+    # Updating parameters for running chosen job
+    run_params["net_name"] = net_name
+    run_params["dataset"] = dataset
 
     # prepare args
     params_list = list(chain.from_iterable((f"--{k}", str(run_params[k])) for k in run_params))
