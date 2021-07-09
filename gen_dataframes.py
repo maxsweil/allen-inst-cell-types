@@ -14,7 +14,7 @@ parser.add_argument("--data_dir", default="/allen/programs/braintv/workgroups/nc
                     type=str, help="Directory to pull data from")
 parser.add_argument("--save_dir", default="/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dataframes/",
                     type=str, help="Directory to save dataframe")
-parser.add_argument("--epoch_num", default='150', type=str, help="Epoch number to draw from (typically the last epoch)")
+parser.add_argument("--epoch_num", default='100', type=str, help="Epoch number to draw from (typically the last epoch)")
 
 
 def main(net_name, dataset, data_dir, save_dir, epoch_num):
