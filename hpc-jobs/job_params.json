@@ -76,8 +76,7 @@
         "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/gen_dataframes.py",
         "run_params": {
             "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/nets/",
-            "save_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dataframes/",
-            "epoch_num": "100"
+            "save_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dataframes/"
         },
         "job_settings": {
             "partition": "braintv",

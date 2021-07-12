@@ -14,17 +14,18 @@ job_dir = "/allen/programs/braintv/workgroups/nc-ophys/max.weil/slurm_logs/"
 
 # Arguments to pass with job submission
 parser = argparse.ArgumentParser()
-parser.add_argument("--job_title", type=str, help="Name of job to run (see job_params.json for possible jobs)")
 parser.add_argument("--net_name", default='sticknet8', type=str, help="Name of network (ex. vgg11, sticknet8)")
 parser.add_argument("--dataset", default='cifar10', type=str, help="Name of dataset (ex. cifar10, cifar100)")
+parser.add_argument("--epoch_num", default='150', type=str, help="The epoch number to pull data from")
 
-def main(job_title, net_name, dataset):
+def main(job_title, net_name, dataset, epoch_num):
         
     # Open job_params.json file
     with open("job_params.json", "r") as json_file:
         job_params = json.load(json_file)
     
     # Pull out various parameters for chosen job
+    job_title = 'gen_dataframes'
     job_params = job_params[job_title]
     script = job_params["script"]
     run_params = job_params["run_params"]
@@ -33,6 +34,7 @@ def main(job_title, net_name, dataset):
     # Updating parameters for running chosen job
     run_params["net_name"] = net_name
     run_params["dataset"] = dataset
+    run_params["epoch_num"] = epoch_num
 
     # prepare args
     params_list = list(chain.from_iterable((f"--{k}", str(run_params[k])) for k in run_params))
