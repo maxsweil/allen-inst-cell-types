@@ -51,6 +51,9 @@ def main(job_title, net_name, dataset, epoch_num):
     # Executing slurm job using python path specified above and script/params from job_params.json
 
 if __name__ == "__main__":
+    # Parsing arguments provided and printing them back
     args = parser.parse_args()
     print(args)
+
+    # Submitting arguments to main to run Slurm job
     main(**vars(args))

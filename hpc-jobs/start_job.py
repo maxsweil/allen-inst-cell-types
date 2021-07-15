@@ -13,14 +13,16 @@ import subprocess
 
 from simple_slurm import Slurm
 
-# Setting paths for python environment to use and where to save output/error logs
+# Setting paths for python environment to use
 python_executable = "/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/python"
+
+# Path for saving error and output logs
 job_dir = "/allen/programs/braintv/workgroups/nc-ophys/max.weil/slurm_logs/"
 
-# args
+# Arguments to request during job submission
 parser = argparse.ArgumentParser()
-parser.add_argument("--job_title", type=str, help="Set value for job_title")
-parser.add_argument("--case", default=None, type=str)
+parser.add_argument("--job_title", type=str, help="Which job name to run (from job_params.json)")
+parser.add_argument("--case", default=None, type=str, help="Which cases to run (")
 parser.add_argument("--schemes", default=[], nargs="+", type=str)
 parser.add_argument("--net_name", default=None, type=str)
 parser.add_argument("--cases", default=[], nargs="+", type=str)
