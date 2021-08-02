@@ -36,7 +36,7 @@ def main(net_name, dataset, config_groups):
     run_params["dataset"] = dataset
 
     for group in config_groups:
-        run_params["config_group"] = config_groups[group]
+        run_params["config_group"] = group
 
         # prepare args
         params_list = list(chain.from_iterable((f"--{k}", str(run_params[k])) for k in run_params))
