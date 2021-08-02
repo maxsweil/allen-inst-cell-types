@@ -82,7 +82,7 @@
             "partition": "braintv",
             "mem": "32g",
             "time": "8:00:00",
-            "ntasks": 4,
+            "ntasks": 1,
             "nodes": 1,
             "gpus": 1,
             "mail_user": "max.weil@alleninstitute.org",
