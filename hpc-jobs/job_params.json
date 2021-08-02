@@ -88,5 +88,21 @@
             "mail_user": "max.weil@alleninstitute.org",
             "mail_type": "ALL"
         }
+    },
+    "create_dimensionality_dicts": {
+        "script": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/create_dimensionality_dicts.py",
+        "run_params": {
+            "data_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/nets/",
+            "save_dir": "/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dimensionality_data/"
+        },
+        "job_settings": {
+            "partition": "braintv",
+            "mem": "32g",
+            "time": "8:00:00",
+            "nodes": 1,
+            "gpus": 1,
+            "mail_user": "max.weil@alleninstitute.org",
+            "mail_type": "ALL"
+        }
     }
 }
