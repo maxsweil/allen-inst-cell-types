@@ -190,7 +190,7 @@ def layer_PCA(layer, eigenvalue=True):
 
 def save_dicts(dicts, net_name, dataset, config_group, save_dir):
     label = net_name + '_' + dataset + '_' + config_group
-    filename = save_dir + label + '.pkl'
+    filename = os.path.join(save_dir, dataset, net_name) + label + '.pkl'
     save_dicts = make_save_dicts(dicts)
     with open(filename, 'wb') as handle:
         pickle.dump(save_dicts, handle)
