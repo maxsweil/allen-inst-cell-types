@@ -41,7 +41,7 @@ def main(net_filepath, data_dir, net_name, batch_size, dataset):
     manager.train_net(criterion, optimizer, None, 1.0)
 
     # save output
-    manager.save_arr("activation_dict", manager.activation_dict, False)
+    manager.save_arr("activation_dict", manager.activation_dict, True)
 
     print("save_net_activations.py completed")
     return

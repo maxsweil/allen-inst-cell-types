@@ -1,10 +1,5 @@
 #!/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/ python
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 25 17:01:34 2020
-
-@author: briardoty
-"""
 import argparse
 import json
 import sys
@@ -13,42 +8,33 @@ import subprocess
 
 from simple_slurm import Slurm
 
-# Setting paths for python environment to use
+# Setting paths for python environment to use and where to save output/error logs
 python_executable = "/allen/programs/braintv/workgroups/nc-ophys/max.weil/miniconda3/envs/MaxEnv/bin/python"
-
-# Path for saving error and output logs
 job_dir = "/allen/programs/braintv/workgroups/nc-ophys/max.weil/slurm_logs/"
 
-# Arguments to request during job submission
+# Arguments to pass with job submission
 parser = argparse.ArgumentParser()
-parser.add_argument("--job_title", type=str, help="Which job name to run (from job_params.json)")
-parser.add_argument("--case", default=None, type=str, help="Which cases to run (")
-parser.add_argument("--schemes", default=[], nargs="+", type=str)
-parser.add_argument("--net_name", default=None, type=str)
-parser.add_argument("--cases", default=[], nargs="+", type=str)
+parser.add_argument("--net_name", default='sticknet8', type=str, help="Name of network (ex. vgg11, sticknet8)")
+parser.add_argument("--dataset", default='cifar10', type=str, help="Name of dataset (ex. cifar10, cifar100)")
+parser.add_argument("--epoch_num", default='150', type=str, help="The epoch number to pull data from")
 
 
-def main(job_title, cases, case, net_name, schemes):
-    # script, run_params and job_settings
+def main(net_name, dataset, epoch_num):
+    # Open job_params.json file
     with open("job_params.json", "r") as json_file:
         job_params = json.load(json_file)
 
+    # Pull out various parameters for chosen job
+    job_title = 'gen_dataframes'
     job_params = job_params[job_title]
     script = job_params["script"]
     run_params = job_params["run_params"]
     job_settings = job_params["job_settings"]
 
-    if len(cases) > 0:
-        run_params["cases"] = param_arr_helper(cases)
-
-    if len(schemes) > 0:
-        run_params["schemes"] = param_arr_helper(schemes)
-
-    if case is not None:
-        run_params["case"] = case
-
-    if net_name is not None:
-        run_params["net_name"] = net_name
+    # Updating parameters for running chosen job
+    run_params["net_name"] = net_name
+    run_params["dataset"] = dataset
+    run_params["epoch_num"] = epoch_num
 
     # prepare args
     params_list = list(chain.from_iterable((f"--{k}", str(run_params[k])) for k in run_params))
@@ -65,14 +51,10 @@ def main(job_title, cases, case, net_name, schemes):
     # Executing slurm job using python path specified above and script/params from job_params.json
 
 
-def param_arr_helper(param_arr):
-    if param_arr is None or len(param_arr) == 0:
-        return None
-
-    return " ".join(str(p) for p in param_arr)
-
-
 if __name__ == "__main__":
+    # Parsing arguments provided and printing them back
     args = parser.parse_args()
     print(args)
+
+    # Submitting arguments to main to run Slurm job
     main(**vars(args))

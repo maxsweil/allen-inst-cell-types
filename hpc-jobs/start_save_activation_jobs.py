@@ -92,7 +92,7 @@ def main(net_name, cases, scheme, dataset, final):
 
         # Kicking off HPC job
         slurm = Slurm(
-            job_name=f" {net_filepath}",  # Setting name for job
+            job_name=job_title+net_filepath,  # Setting name for job
             output=job_dir + "output.out",  # Setting destination for output log
             error=job_dir + "error.err",  # Setting destination for error log
             **job_settings  # Importing all other jobs settings from job_params.json

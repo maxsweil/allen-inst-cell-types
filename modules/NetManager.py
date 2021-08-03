@@ -33,6 +33,16 @@ except:
     from StubNet import StubNet
 
 try:
+    from .SlimNet import SlimNet
+except:
+    from SlimNet import SlimNet
+
+try:
+    from .StockyNet import StockyNet
+except:
+    from StockyNet import StockyNet
+
+try:
     from .util import *
 except:
     from util import *
@@ -176,8 +186,14 @@ class NetManager():
         elif self.net_name == "sticknet8":
             self.net = StickNet(8)
 
-        elif self.netname == "stubnet8":
+        elif self.net_name == "stubnet8":
             self.net = StubNet(8)
+
+        elif self.net_name == "slimnet8":
+            self.net = SlimNet(8)
+
+        elif self.net_name == "stockynet64":
+            self.net = StockyNet(64)
 
         else:
             print(f"Unrecognized network name {self.net_name}, exiting job.")
