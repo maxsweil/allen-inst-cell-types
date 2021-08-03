@@ -97,7 +97,7 @@
         },
         "job_settings": {
             "partition": "braintv",
-            "mem": "32g",
+            "mem": "0",
             "time": "8:00:00",
             "nodes": 1,
             "gpus": 1,

@@ -3,6 +3,7 @@ import argparse
 import pickle
 import json
 import numpy as np
+import gc
 from sklearn.decomposition import PCA
 
 
@@ -53,7 +54,10 @@ def load_all(net_name, dataset, cases, data_dir):
 def load_samples(net_name, dataset, case, data_dir):
     dicts = []
     for sample in np.arange(0, 20):
-        dicts.append(load_dict(case, sample=sample, dataset=dataset, net_name=net_name, data_dir=data_dir))
+        data = load_dict(case, sample=sample, dataset=dataset, net_name=net_name, data_dir=data_dir)
+        dicts.append(data)
+        del data
+        gc.collect()
     return dicts
 
 
@@ -190,7 +194,7 @@ def layer_PCA(layer, eigenvalue=True):
 
 def save_dicts(dicts, net_name, dataset, config_group, save_dir):
     label = net_name + '_' + dataset + '_' + config_group
-    filename = os.path.join(save_dir, dataset, net_name) + label + '.pkl'
+    filename = os.path.join(save_dir, dataset, net_name, label+'.pkl')
     save_dicts = make_save_dicts(dicts)
     with open(filename, 'wb') as handle:
         pickle.dump(save_dicts, handle)
