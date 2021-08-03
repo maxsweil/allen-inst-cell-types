@@ -10,23 +10,23 @@ from sklearn.decomposition import PCA
 parser = argparse.ArgumentParser()
 parser.add_argument("--net_name", type=str, required=True, help="Network to analyze (ex. vgg11, sticknet8)")
 parser.add_argument("--dataset", type=str, required=True, help="Dataset trained on (ex. cifar10, cifar100")
-parser.add_argument("--config_group", type=str, required=True, help="Specific set of cases to analyze (ex. within-tanh, control)")
+parser.add_argument("--case", type=str, required=True, help="Specific case to analyze (ex. tanh1-2, relu)")
 parser.add_argument("--data_dir", default="/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/nets/",
                     type=str, help="Directory to pull data from")
 parser.add_argument("--save_dir", default="/allen/programs/braintv/workgroups/nc-ophys/max.weil/data/data/dimensionality_data/",
                     type=str, help="Directory to save dataframe")
 
 
-def main(net_name, dataset, config_group, data_dir, save_dir):
-    cases = get_case_names(config_group)
-    dicts = load_all(net_name, dataset, cases, data_dir)
+def main(net_name, dataset, case, data_dir, save_dir):
+    #cases = get_case_names(config_group)
+    dicts = load_all(net_name, dataset, case, data_dir)
     dicts = format_samples(dicts)
     dicts = compute_all(dicts)
-    save_dicts(dicts, net_name, dataset, config_group, save_dir)
+    save_dicts(dicts, net_name, dataset, case, save_dir)
     return dicts
 
 
-def get_case_names(config_group):
+'''def get_case_names(config_group):
 
     # Opening network configuration json file
     with open("/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/hpc-jobs/net_configs.json", "r") as json_file:
@@ -38,16 +38,14 @@ def get_case_names(config_group):
     for case in configs.keys():
         cases.add(case)
     cases = list(cases)
-    return cases
+    return cases'''
 
 
-def load_all(net_name, dataset, cases, data_dir):
-    dicts = []
-    for case in cases:
-        try:
-            dicts = dicts + load_samples(net_name, dataset, case, data_dir)
-        except:
-            print(case + ' crashed')
+def load_all(net_name, dataset, case, data_dir):
+    try:
+        dicts = load_samples(net_name, dataset, case, data_dir)
+    except:
+        print(case + ' crashed')
     return dicts
 
 
@@ -192,8 +190,8 @@ def layer_PCA(layer, eigenvalue=True):
     return dimensionality, variance
 
 
-def save_dicts(dicts, net_name, dataset, config_group, save_dir):
-    label = net_name + '_' + dataset + '_' + config_group
+def save_dicts(dicts, net_name, dataset, case, save_dir):
+    label = net_name + '_' + dataset + '_' + case
     filename = os.path.join(save_dir, dataset, net_name, label+'.pkl')
     save_dicts = make_save_dicts(dicts)
     with open(filename, 'wb') as handle:
