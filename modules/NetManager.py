@@ -350,7 +350,7 @@ class NetManager():
         (self.train_set, self.val_set, self.test_set,
          self.train_loader,
          self.val_loader,
-         self.test_loader) = load_cifar10_activation(self.data_dir,
+         self.test_loader) = load_activation(self.data_dir, self.dataset,
                                                      batch_size)
 
     def replace_act_layers(self, n_repeat, act_fns, act_fn_params, spatial,

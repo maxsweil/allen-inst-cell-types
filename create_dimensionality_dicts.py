@@ -26,21 +26,6 @@ def main(net_name, dataset, case, data_dir, save_dir):
     return dicts
 
 
-'''def get_case_names(config_group):
-
-    # Opening network configuration json file
-    with open("/allen/programs/braintv/workgroups/nc-ophys/max.weil/allen-inst-cell-types/hpc-jobs/net_configs.json", "r") as json_file:
-        net_configs = json.load(json_file)
-
-    # Finding all cases within single config group
-    cases = set()
-    configs = net_configs[config_group]
-    for case in configs.keys():
-        cases.add(case)
-    cases = list(cases)
-    return cases'''
-
-
 def load_all(net_name, dataset, case, data_dir):
     try:
         dicts = load_samples(net_name, dataset, case, data_dir)

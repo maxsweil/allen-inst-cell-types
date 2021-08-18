@@ -19,6 +19,7 @@ class StickNet(nn.Module):
             nn.Conv2d(3, nfl_units, kernel_size=3, padding=1),  # Output = 8x32x32
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # Output = 8x16x16
+
             nn.Conv2d(nfl_units, 2 * nfl_units, kernel_size=3, padding=1),  # Output = 16x16x16
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # Output = 16x8x8
